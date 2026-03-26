@@ -571,11 +571,6 @@
     <div class="result-text" id="rejected-text">Offer declined</div>
 </div>
 
-<!-- ITI -->
-<div class="screen" id="screen-iti">
-    <div class="fixation">+</div>
-</div>
-
 <!-- END -->
 <div class="screen" id="screen-end">
     <div class="emoji-large">🎉</div>
@@ -596,7 +591,6 @@ const Pierre = (() => {
         effortDuration: 8000,
         effortSelectionRate: 0.50,
         postEffortBreak: 2000,
-        itiDuration: 2000,
         effortLevels: [0.50, 0.65, 0.80, 0.95],
         rewardLevels: [1, 5, 10, 20],
         repetitionsPerBlock: 1,
@@ -831,13 +825,13 @@ const Pierre = (() => {
     function showNoEffort(trial) {
         $('no-effort-reward').textContent = `+${trial.reward} 🍎`;
         showScreen('screen-no-effort');
-        setTimeout(() => showITI(), 1500);
+        setTimeout(() => nextTrial(), 1500);
     }
 
     function showRejected(choice) {
         $('rejected-text').textContent = choice === 'timeout' ? 'Time\'s up!' : 'Offer declined';
         showScreen('screen-rejected');
-        setTimeout(() => showITI(), 1000);
+        setTimeout(() => nextTrial(), 1000);
     }
 
     // --- Effort Production ---
@@ -923,16 +917,12 @@ const Pierre = (() => {
         showScreen('screen-effort-result');
 
         // 2s break then ITI
-        setTimeout(() => showITI(), CONFIG.postEffortBreak);
+        setTimeout(() => nextTrial(), CONFIG.postEffortBreak);
     }
 
-    // --- ITI ---
-    function showITI() {
-        showScreen('screen-iti');
-        setTimeout(() => {
-            state.currentTrial++;
-            showOffer();
-        }, CONFIG.itiDuration);
+    function nextTrial() {
+        state.currentTrial++;
+        showOffer();
     }
 
     // --- End ---
