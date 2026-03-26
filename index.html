@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apple Gathering Task</title>
+    <style>
+        :root {
+            --bg: #f5f0e8;
+            --primary: #4a7c59;
+            --primary-dark: #3a6347;
+            --accent: #c0392b;
+            --accent-light: #e74c3c;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --gauge-bg: #d5d8dc;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 480px;
+            min-height: 100dvh;
+            padding: 24px 20px;
+            text-align: center;
+            gap: 20px;
+        }
+        .screen.active { display: flex; }
+
+        h1 { font-size: 1.8rem; font-weight: 700; }
+        h2 { font-size: 1.4rem; font-weight: 600; }
+        p { font-size: 1rem; line-height: 1.5; color: var(--text-light); max-width: 360px; }
+        .emoji-large { font-size: 3.5rem; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
+            min-width: 140px;
+            min-height: 52px;
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-accept { background: var(--success); color: #fff; }
+        .btn-reject { background: var(--accent); color: #fff; }
+        .btn-row { display: flex; gap: 16px; width: 100%; justify-content: center; }
+
+        /* Top bar */
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            padding-bottom: 8px;
+        }
+
+        /* Timer bar */
+        .timer-bar-container {
+            width: 100%;
+            height: 6px;
+            background: var(--gauge-bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .timer-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: none;
+        }
+
+        /* Gauge */
+        .gauge-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            height: 260px;
+        }
+        .gauge {
+            position: relative;
+            width: 80px;
+            height: 100%;
+            background: var(--gauge-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #bdc3c7;
+        }
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            border-radius: 0 0 8px 8px;
+            transition: height 0.15s ease-out, background-color 0.3s;
+        }
+        .gauge-target {
+            position: absolute;
+            left: -4px;
+            right: -4px;
+            height: 3px;
+            background: var(--accent);
+            z-index: 2;
+        }
+        .gauge-target::after {
+            content: 'TARGET';
+            position: absolute;
+            right: -60px;
+            top: -8px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+        }
+        .gauge-labels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            font-size: 0.7rem;
+            color: var(--text-light);
+            padding: 4px 0;
+        }
+
+        /* Reward display */
+        .reward-display {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px 28px;
+            box-shadow: var(--shadow);
+        }
+        .reward-amount {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .reward-label { font-size: 0.85rem; color: var(--text-light); margin-top: 2px; }
+
+        /* Effort label */
+        .effort-label {
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .effort-easy { background: #d5f5e3; color: #1e8449; }
+        .effort-medium { background: #fdebd0; color: #b9770e; }
+        .effort-hard { background: #fadbd8; color: #c0392b; }
+        .effort-vhard { background: #e8daef; color: #7d3c98; }
+
+        /* Tap area */
+        .tap-area {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            cursor: pointer;
+            touch-action: none;
+            transition: transform 0.06s;
+            box-shadow: 0 6px 20px rgba(74,124,89,0.35);
+        }
+        .tap-area.pressed { transform: scale(0.93); }
+        .tap-area.calibration-tap {
+            width: 200px;
+            height: 200px;
+            font-size: 1.4rem;
+            background: var(--warning);
+            box-shadow: 0 6px 20px rgba(230,126,34,0.35);
+        }
+
+        /* Countdown overlay */
+        .countdown {
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--primary);
+            animation: pulse 0.5s ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Result displays */
+        .result-icon { font-size: 4rem; }
+        .result-text { font-size: 1.3rem; font-weight: 600; }
+        .result-reward { font-size: 1.1rem; color: var(--success); font-weight: 600; }
+        .result-fail { color: var(--accent); }
+
+        /* Progress bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: var(--gauge-bg);
+            border-radius: 2px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        /* Fixation cross */
+        .fixation {
+            font-size: 3rem;
+            color: var(--text-light);
+            font-weight: 300;
+        }
+
+        /* Stats table */
+        .stats-table {
+            width: 100%;
+            max-width: 340px;
+            text-align: left;
+            border-collapse: collapse;
+        }
+        .stats-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 0.95rem;
+        }
+        .stats-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        /* Tap counter */
+        .tap-counter {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .tap-rate {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        /* Effort screen layout */
+        .effort-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+        .effort-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            width: 100%;
+        }
+        .effort-timer {
+            font-size: 2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+            min-width: 60px;
+        }
+
+        /* Mode selector */
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .mode-btn:hover, .mode-btn.selected {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Instruction list */
+        .instruction-list {
+            text-align: left;
+            max-width: 360px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .instruction-list li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div class="screen active" id="screen-welcome">
+    <div class="emoji-large">🍎</div>
+    <h1>Apple Gathering Task</h1>
+    <p>An effort-based decision-making demo</p>
+    <div>
+        <p style="font-weight:600; color:var(--text); margin-bottom:8px;">Choose session length:</p>
+        <div class="mode-selector">
+            <button class="mode-btn" onclick="Pierre.setReps(1)">Quick (16)</button>
+            <button class="mode-btn selected" onclick="Pierre.setReps(2)">Short (32)</button>
+            <button class="mode-btn" onclick="Pierre.setReps(4)">Full (64)</button>
+        </div>
+    </div>
+    <button class="btn btn-primary" onclick="Pierre.startCalibration()">Start</button>
+</div>
+
+<!-- CALIBRATION INTRO -->
+<div class="screen" id="screen-cal-intro">
+    <div class="emoji-large">💪</div>
+    <h2>Calibration</h2>
+    <p>First, we need to measure your maximum tapping speed. When you see the orange circle, tap it as <strong>fast as you can</strong> for 5 seconds.</p>
+    <p>We'll do this twice and use your best result.</p>
+    <button class="btn btn-primary" onclick="Pierre.runCalibrationRound()">Ready</button>
+</div>
+
+<!-- CALIBRATION COUNTDOWN -->
+<div class="screen" id="screen-cal-countdown">
+    <p id="cal-round-label">Round 1 of 2</p>
+    <div class="countdown" id="cal-countdown-num">3</div>
+</div>
+
+<!-- CALIBRATION TAP -->
+<div class="screen" id="screen-cal-tap">
+    <p id="cal-time-left">5.0s</p>
+    <div class="tap-area calibration-tap" id="cal-tap-area">TAP!</div>
+    <div class="tap-counter" id="cal-tap-count">0</div>
+    <div class="tap-rate" id="cal-tap-rate">taps</div>
+</div>
+
+<!-- CALIBRATION RESULT -->
+<div class="screen" id="screen-cal-result">
+    <div class="emoji-large">✅</div>
+    <h2>Calibration Complete</h2>
+    <p id="cal-result-text">Your max tapping speed: 7.2 taps/sec</p>
+    <button class="btn btn-primary" onclick="Pierre.showTaskIntro()">Continue</button>
+</div>
+
+<!-- TASK INTRO -->
+<div class="screen" id="screen-task-intro">
+    <div class="emoji-large">🌳</div>
+    <h2>Apple Gathering</h2>
+    <ol class="instruction-list">
+        <li>Each trial shows an <strong>effort gauge</strong> and a <strong>reward</strong> (apples).</li>
+        <li>You have <strong>4 seconds</strong> to <strong>Accept</strong> or <strong>Reject</strong> the offer.</li>
+        <li>If you accept, there's a <strong>25% chance</strong> you'll need to tap fast enough to actually gather the apples.</li>
+        <li>If you succeed (or aren't tested), you earn the apples!</li>
+    </ol>
+    <button class="btn btn-primary" onclick="Pierre.startTask()">Begin</button>
+</div>
+
+<!-- OFFER / DECISION -->
+<div class="screen" id="screen-offer">
+    <div class="top-bar">
+        <span id="offer-trial-label">Trial 1 / 64</span>
+        <span id="offer-total-label">Total: 0 🍎</span>
+    </div>
+    <div class="timer-bar-container">
+        <div class="timer-bar-fill" id="offer-timer-bar"></div>
+    </div>
+    <div class="reward-display">
+        <div class="reward-amount" id="offer-reward">10 🍎</div>
+        <div class="reward-label">Reward</div>
+    </div>
+    <div class="gauge-container">
+        <div class="gauge">
+            <div class="gauge-fill" id="offer-gauge-fill"></div>
+            <div class="gauge-target" id="offer-gauge-target"></div>
+        </div>
+        <div class="gauge-labels">
+            <span>Max</span>
+            <span>75%</span>
+            <span>50%</span>
+            <span>25%</span>
+            <span>0</span>
+        </div>
+    </div>
+    <div class="effort-label" id="offer-effort-label">Hard</div>
+    <div class="btn-row">
+        <button class="btn btn-reject" id="btn-reject" onclick="Pierre.decide('reject')">Reject</button>
+        <button class="btn btn-accept" id="btn-accept" onclick="Pierre.decide('accept')">Accept</button>
+    </div>
+</div>
+
+<!-- EFFORT GET READY -->
+<div class="screen" id="screen-effort-ready">
+    <div class="emoji-large">🍎</div>
+    <h2>Gather the apples!</h2>
+    <p>Tap fast enough to keep the bar above the target line.</p>
+</div>
+
+<!-- EFFORT PRODUCTION -->
+<div class="screen" id="screen-effort">
+    <div class="top-bar">
+        <span id="effort-trial-label">Trial 1 / 64</span>
+        <span id="effort-reward-label">For: 10 🍎</span>
+    </div>
+    <div class="effort-layout">
+        <div class="effort-top-row">
+            <div class="effort-timer" id="effort-timer">8.0</div>
+            <div class="gauge-container" style="height:200px;">
+                <div class="gauge" style="width:70px;">
+                    <div class="gauge-fill" id="effort-gauge-fill"></div>
+                    <div class="gauge-target" id="effort-gauge-target"></div>
+                </div>
+            </div>
+        </div>
+        <div class="tap-area" id="effort-tap-area">TAP!</div>
+        <div class="tap-rate" id="effort-tap-info">Taps: 0</div>
+    </div>
+</div>
+
+<!-- EFFORT RESULT -->
+<div class="screen" id="screen-effort-result">
+    <div class="result-icon" id="effort-result-icon">✅</div>
+    <div class="result-text" id="effort-result-text">Apples gathered!</div>
+    <div class="result-reward" id="effort-result-reward">+10 🍎</div>
+</div>
+
+<!-- NO EFFORT (auto collect) -->
+<div class="screen" id="screen-no-effort">
+    <div class="result-icon">🍎</div>
+    <div class="result-text">Apples collected!</div>
+    <div class="result-reward" id="no-effort-reward">+10 🍎</div>
+</div>
+
+<!-- REJECTED -->
+<div class="screen" id="screen-rejected">
+    <div class="result-icon">➡️</div>
+    <div class="result-text" id="rejected-text">Offer declined</div>
+</div>
+
+<!-- ITI -->
+<div class="screen" id="screen-iti">
+    <div class="fixation">+</div>
+</div>
+
+<!-- END -->
+<div class="screen" id="screen-end">
+    <div class="emoji-large">🎉</div>
+    <h2>Task Complete!</h2>
+    <table class="stats-table" id="end-stats"></table>
+    <div class="btn-row">
+        <button class="btn btn-primary" onclick="Pierre.downloadData()">Download CSV</button>
+        <button class="btn btn-primary" onclick="Pierre.restart()">Restart</button>
+    </div>
+</div>
+
+<script>
+const Pierre = (() => {
+    // --- Configuration ---
+    const CONFIG = {
+        calibrationDuration: 5000,
+        calibrationRounds: 2,
+        decisionTimeout: 4000,
+        effortDuration: 8000,
+        effortSelectionRate: 0.25,
+        postEffortBreak: 2000,
+        itiDuration: 2000,
+        effortLevels: [0.50, 0.65, 0.80, 0.95],
+        rewardLevels: [1, 5, 10, 20],
+        repetitionsPerBlock: 2,
+    };
+
+    const EFFORT_LABELS = {
+        0.50: { text: 'Easy', cls: 'effort-easy' },
+        0.65: { text: 'Medium', cls: 'effort-medium' },
+        0.80: { text: 'Hard', cls: 'effort-hard' },
+        0.95: { text: 'Very Hard', cls: 'effort-vhard' },
+    };
+
+    // --- State ---
+    let state = {
+        maxTapRate: 0,
+        calRound: 0,
+        calResults: [],
+        calTaps: 0,
+        calStartTime: 0,
+        calTimerId: null,
+        calUpdateId: null,
+        trials: [],
+        currentTrial: 0,
+        totalReward: 0,
+        trialData: [],
+        // Current trial state
+        decisionTimerId: null,
+        decisionAnimId: null,
+        decisionStart: 0,
+        effortTaps: 0,
+        effortStartTime: 0,
+        effortTimerId: null,
+        effortUpdateId: null,
+    };
+
+    // --- Utilities ---
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function generateTrials() {
+        const trials = [];
+        for (const effort of CONFIG.effortLevels) {
+            for (const reward of CONFIG.rewardLevels) {
+                for (let r = 0; r < CONFIG.repetitionsPerBlock; r++) {
+                    trials.push({ effort, reward });
+                }
+            }
+        }
+        return shuffle(trials);
+    }
+
+    // --- Calibration ---
+    function startCalibration() {
+        state.calRound = 0;
+        state.calResults = [];
+        showScreen('screen-cal-intro');
+    }
+
+    function runCalibrationRound() {
+        state.calRound++;
+        $('cal-round-label').textContent = `Round ${state.calRound} of ${CONFIG.calibrationRounds}`;
+        showScreen('screen-cal-countdown');
+        let count = 3;
+        $('cal-countdown-num').textContent = count;
+        const countdownId = setInterval(() => {
+            count--;
+            if (count > 0) {
+                $('cal-countdown-num').textContent = count;
+                $('cal-countdown-num').style.animation = 'none';
+                void $('cal-countdown-num').offsetWidth;
+                $('cal-countdown-num').style.animation = 'pulse 0.5s ease-in-out';
+            } else {
+                clearInterval(countdownId);
+                startCalibrationTapping();
+            }
+        }, 800);
+    }
+
+    function startCalibrationTapping() {
+        state.calTaps = 0;
+        $('cal-tap-count').textContent = '0';
+        $('cal-tap-rate').textContent = 'taps';
+        $('cal-time-left').textContent = '5.0s';
+        showScreen('screen-cal-tap');
+
+        const tapArea = $('cal-tap-area');
+        state.calStartTime = performance.now();
+
+        const tapHandler = (e) => {
+            e.preventDefault();
+            state.calTaps++;
+            $('cal-tap-count').textContent = state.calTaps;
+            tapArea.classList.add('pressed');
+            setTimeout(() => tapArea.classList.remove('pressed'), 60);
+        };
+
+        tapArea.addEventListener('touchstart', tapHandler, { passive: false });
+        tapArea.addEventListener('mousedown', tapHandler);
+
+        state.calUpdateId = setInterval(() => {
+            const elapsed = (performance.now() - state.calStartTime) / 1000;
+            const remaining = Math.max(0, CONFIG.calibrationDuration / 1000 - elapsed);
+            $('cal-time-left').textContent = remaining.toFixed(1) + 's';
+            if (state.calTaps > 0) {
+                $('cal-tap-rate').textContent = (state.calTaps / elapsed).toFixed(1) + ' taps/sec';
+            }
+        }, 100);
+
+        state.calTimerId = setTimeout(() => {
+            clearInterval(state.calUpdateId);
+            tapArea.removeEventListener('touchstart', tapHandler);
+            tapArea.removeEventListener('mousedown', tapHandler);
+            const rate = state.calTaps / (CONFIG.calibrationDuration / 1000);
+            state.calResults.push(rate);
+            if (state.calRound < CONFIG.calibrationRounds) {
+                runCalibrationRound();
+            } else {
+                finishCalibration();
+            }
+        }, CONFIG.calibrationDuration);
+    }
+
+    function finishCalibration() {
+        state.maxTapRate = Math.max(...state.calResults);
+        if (state.maxTapRate < 1) {
+            state.maxTapRate = 5; // fallback for no taps
+        }
+        $('cal-result-text').textContent =
+            `Your max tapping speed: ${state.maxTapRate.toFixed(1)} taps/sec`;
+        showScreen('screen-cal-result');
+    }
+
+    // --- Task ---
+    function showTaskIntro() {
+        showScreen('screen-task-intro');
+    }
+
+    function startTask() {
+        state.trials = generateTrials();
+        state.currentTrial = 0;
+        state.totalReward = 0;
+        state.trialData = [];
+        showOffer();
+    }
+
+    function showOffer() {
+        if (state.currentTrial >= state.trials.length) {
+            showEnd();
+            return;
+        }
+        const trial = state.trials[state.currentTrial];
+        const effortInfo = EFFORT_LABELS[trial.effort];
+
+        $('offer-trial-label').textContent = `Trial ${state.currentTrial + 1} / ${state.trials.length}`;
+        $('offer-total-label').textContent = `Total: ${state.totalReward} 🍎`;
+        $('offer-reward').textContent = `${trial.reward} 🍎`;
+
+        // Gauge
+        const fillPct = trial.effort * 100;
+        $('offer-gauge-fill').style.height = fillPct + '%';
+        $('offer-gauge-fill').style.backgroundColor =
+            trial.effort <= 0.5 ? 'var(--success)' :
+            trial.effort <= 0.65 ? 'var(--warning)' :
+            trial.effort <= 0.8 ? 'var(--accent-light)' : '#8e44ad';
+        $('offer-gauge-target').style.bottom = fillPct + '%';
+
+        // Effort label
+        const label = $('offer-effort-label');
+        label.textContent = effortInfo.text;
+        label.className = 'effort-label ' + effortInfo.cls;
+
+        // Enable buttons
+        $('btn-accept').disabled = false;
+        $('btn-reject').disabled = false;
+
+        // Timer bar
+        $('offer-timer-bar').style.width = '100%';
+
+        showScreen('screen-offer');
+        state.decisionStart = performance.now();
+
+        // Animate timer bar
+        let animStart = null;
+        function animateTimer(ts) {
+            if (!animStart) animStart = ts;
+            const elapsed = ts - animStart;
+            const pct = Math.max(0, 1 - elapsed / CONFIG.decisionTimeout);
+            $('offer-timer-bar').style.width = (pct * 100) + '%';
+            if (pct > 0 && document.getElementById('screen-offer').classList.contains('active')) {
+                state.decisionAnimId = requestAnimationFrame(animateTimer);
+            }
+        }
+        state.decisionAnimId = requestAnimationFrame(animateTimer);
+
+        // Timeout
+        state.decisionTimerId = setTimeout(() => {
+            cancelAnimationFrame(state.decisionAnimId);
+            decide('timeout');
+        }, CONFIG.decisionTimeout);
+    }
+
+    function decide(choice) {
+        clearTimeout(state.decisionTimerId);
+        cancelAnimationFrame(state.decisionAnimId);
+        $('btn-accept').disabled = true;
+        $('btn-reject').disabled = true;
+
+        const trial = state.trials[state.currentTrial];
+        const rt = performance.now() - state.decisionStart;
+
+        const trialRecord = {
+            trialNum: state.currentTrial + 1,
+            effortLevel: trial.effort,
+            rewardLevel: trial.reward,
+            decision: choice,
+            decisionRT: Math.round(rt),
+            effortSelected: false,
+            tapCount: null,
+            avgTapRate: null,
+            requiredTapRate: null,
+            success: null,
+            rewardEarned: 0,
+        };
+
+        if (choice === 'accept') {
+            const effortSelected = Math.random() < CONFIG.effortSelectionRate;
+            trialRecord.effortSelected = effortSelected;
+            if (effortSelected) {
+                trialRecord.requiredTapRate = +(trial.effort * state.maxTapRate).toFixed(2);
+                state.trialData.push(trialRecord);
+                startEffort(trial, trialRecord);
+            } else {
+                trialRecord.success = true;
+                trialRecord.rewardEarned = trial.reward;
+                state.totalReward += trial.reward;
+                state.trialData.push(trialRecord);
+                showNoEffort(trial);
+            }
+        } else {
+            state.trialData.push(trialRecord);
+            showRejected(choice);
+        }
+    }
+
+    function showNoEffort(trial) {
+        $('no-effort-reward').textContent = `+${trial.reward} 🍎`;
+        showScreen('screen-no-effort');
+        setTimeout(() => showITI(), 1500);
+    }
+
+    function showRejected(choice) {
+        $('rejected-text').textContent = choice === 'timeout' ? 'Time\'s up!' : 'Offer declined';
+        showScreen('screen-rejected');
+        setTimeout(() => showITI(), 1000);
+    }
+
+    // --- Effort Production ---
+    function startEffort(trial, record) {
+        $('effort-trial-label').textContent = `Trial ${state.currentTrial + 1} / ${state.trials.length}`;
+        $('effort-reward-label').textContent = `For: ${trial.reward} 🍎`;
+
+        // Set target line
+        const targetPct = trial.effort * 100;
+        $('effort-gauge-target').style.bottom = targetPct + '%';
+        $('effort-gauge-fill').style.height = '0%';
+        $('effort-gauge-fill').style.backgroundColor = 'var(--success)';
+        $('effort-timer').textContent = '8.0';
+        $('effort-tap-info').textContent = 'Taps: 0';
+
+        // Show get ready
+        showScreen('screen-effort-ready');
+
+        setTimeout(() => {
+            showScreen('screen-effort');
+            beginTapping(trial, record);
+        }, 1500);
+    }
+
+    function beginTapping(trial, record) {
+        state.effortTaps = 0;
+        state.effortStartTime = performance.now();
+        const requiredRate = trial.effort * state.maxTapRate;
+
+        const tapArea = $('effort-tap-area');
+        const tapHandler = (e) => {
+            e.preventDefault();
+            state.effortTaps++;
+            tapArea.classList.add('pressed');
+            setTimeout(() => tapArea.classList.remove('pressed'), 50);
+        };
+
+        tapArea.addEventListener('touchstart', tapHandler, { passive: false });
+        tapArea.addEventListener('mousedown', tapHandler);
+
+        // Update gauge and timer
+        state.effortUpdateId = setInterval(() => {
+            const elapsed = (performance.now() - state.effortStartTime) / 1000;
+            const remaining = Math.max(0, CONFIG.effortDuration / 1000 - elapsed);
+            $('effort-timer').textContent = remaining.toFixed(1);
+            $('effort-tap-info').textContent = `Taps: ${state.effortTaps}`;
+
+            if (elapsed > 0) {
+                const avgRate = state.effortTaps / elapsed;
+                const fillPct = Math.min((avgRate / state.maxTapRate) * 100, 105);
+                $('effort-gauge-fill').style.height = fillPct + '%';
+                $('effort-gauge-fill').style.backgroundColor =
+                    avgRate >= requiredRate ? 'var(--success)' : 'var(--accent-light)';
+            }
+        }, 50);
+
+        // End effort after duration
+        state.effortTimerId = setTimeout(() => {
+            clearInterval(state.effortUpdateId);
+            tapArea.removeEventListener('touchstart', tapHandler);
+            tapArea.removeEventListener('mousedown', tapHandler);
+
+            const elapsed = CONFIG.effortDuration / 1000;
+            const avgRate = state.effortTaps / elapsed;
+            const success = avgRate >= requiredRate;
+
+            record.tapCount = state.effortTaps;
+            record.avgTapRate = +avgRate.toFixed(2);
+            record.success = success;
+            record.rewardEarned = success ? trial.reward : 0;
+            if (success) state.totalReward += trial.reward;
+
+            showEffortResult(trial, success);
+        }, CONFIG.effortDuration);
+    }
+
+    function showEffortResult(trial, success) {
+        $('effort-result-icon').textContent = success ? '✅' : '❌';
+        $('effort-result-text').textContent = success ? 'Apples gathered!' : 'Too slow!';
+        $('effort-result-text').className = 'result-text' + (success ? '' : ' result-fail');
+        $('effort-result-reward').textContent = success ? `+${trial.reward} 🍎` : 'No apples earned';
+        $('effort-result-reward').className = success ? 'result-reward' : 'result-reward result-fail';
+        showScreen('screen-effort-result');
+
+        // 2s break then ITI
+        setTimeout(() => showITI(), CONFIG.postEffortBreak);
+    }
+
+    // --- ITI ---
+    function showITI() {
+        showScreen('screen-iti');
+        setTimeout(() => {
+            state.currentTrial++;
+            showOffer();
+        }, CONFIG.itiDuration);
+    }
+
+    // --- End ---
+    function showEnd() {
+        const accepted = state.trialData.filter(t => t.decision === 'accept').length;
+        const rejected = state.trialData.filter(t => t.decision === 'reject').length;
+        const timedOut = state.trialData.filter(t => t.decision === 'timeout').length;
+        const effortTrials = state.trialData.filter(t => t.effortSelected);
+        const effortSuccess = effortTrials.filter(t => t.success).length;
+        const avgRT = state.trialData.reduce((s, t) => s + t.decisionRT, 0) / state.trialData.length;
+
+        $('end-stats').innerHTML = `
+            <tr><td>Total trials</td><td>${state.trialData.length}</td></tr>
+            <tr><td>Accepted</td><td>${accepted}</td></tr>
+            <tr><td>Rejected</td><td>${rejected}</td></tr>
+            <tr><td>Timed out</td><td>${timedOut}</td></tr>
+            <tr><td>Effort tests</td><td>${effortTrials.length}</td></tr>
+            <tr><td>Effort successes</td><td>${effortSuccess} / ${effortTrials.length}</td></tr>
+            <tr><td>Avg decision RT</td><td>${Math.round(avgRT)} ms</td></tr>
+            <tr><td>Max tap rate</td><td>${state.maxTapRate.toFixed(1)} /sec</td></tr>
+            <tr><td><strong>Total apples</strong></td><td><strong>${state.totalReward} 🍎</strong></td></tr>
+        `;
+        showScreen('screen-end');
+    }
+
+    // --- Data Export ---
+    function downloadData() {
+        const headers = [
+            'trial', 'effort_pct', 'reward', 'decision', 'decision_rt_ms',
+            'effort_selected', 'tap_count', 'avg_tap_rate', 'required_tap_rate',
+            'success', 'reward_earned'
+        ];
+        const rows = state.trialData.map(t => [
+            t.trialNum,
+            Math.round(t.effortLevel * 100),
+            t.rewardLevel,
+            t.decision,
+            t.decisionRT,
+            t.effortSelected,
+            t.tapCount ?? '',
+            t.avgTapRate ?? '',
+            t.requiredTapRate ?? '',
+            t.success ?? '',
+            t.rewardEarned,
+        ].join(','));
+
+        const csv = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `apple_gathering_data_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function setReps(n) {
+        CONFIG.repetitionsPerBlock = n;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+
+    function restart() {
+        state = {
+            maxTapRate: 0, calRound: 0, calResults: [], calTaps: 0,
+            calStartTime: 0, calTimerId: null, calUpdateId: null,
+            trials: [], currentTrial: 0, totalReward: 0, trialData: [],
+            decisionTimerId: null, decisionAnimId: null, decisionStart: 0,
+            effortTaps: 0, effortStartTime: 0, effortTimerId: null, effortUpdateId: null,
+        };
+        showScreen('screen-welcome');
+    }
+
+    // Public API
+    return {
+        startCalibration,
+        runCalibrationRound,
+        showTaskIntro,
+        startTask,
+        decide,
+        downloadData,
+        setReps,
+        restart,
+    };
+})();
+</script>
+
+</body>
+</html>
