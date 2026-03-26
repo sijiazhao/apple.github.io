@@ -427,7 +427,7 @@
                 <ul>
                     <li>See an effort gauge + reward offer</li>
                     <li>Accept or Reject the offer (no time limit)</li>
-                    <li>If accepted: <strong>25% chance</strong> of an effort test</li>
+                    <li>If accepted: <strong>50% chance</strong> of an effort test</li>
                     <li>Effort test: tap above the target rate for <strong>8 s</strong></li>
                     <li>Success earns the apples; failure earns nothing</li>
                 </ul>
@@ -487,7 +487,7 @@
     <ol class="instruction-list">
         <li>Each trial shows an <strong>effort gauge</strong> and a <strong>reward</strong> (apples).</li>
         <li><strong>Accept</strong> or <strong>Reject</strong> the offer at your own pace.</li>
-        <li>If you accept, there's a <strong>25% chance</strong> you'll need to tap fast enough to actually gather the apples.</li>
+        <li>If you accept, there's a <strong>50% chance</strong> you'll need to tap fast enough to actually gather the apples.</li>
         <li>If you succeed (or aren't tested), you earn the apples!</li>
     </ol>
     <button class="btn btn-primary" onclick="Pierre.startTask()">Begin</button>
@@ -594,7 +594,7 @@ const Pierre = (() => {
         calibrationDuration: 5000,
         calibrationRounds: 2,
         effortDuration: 8000,
-        effortSelectionRate: 0.25,
+        effortSelectionRate: 0.50,
         postEffortBreak: 2000,
         itiDuration: 2000,
         effortLevels: [0.50, 0.65, 0.80, 0.95],
